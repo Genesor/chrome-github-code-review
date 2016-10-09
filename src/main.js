@@ -1,5 +1,6 @@
-function Main() {
-}
+
+function Main() {}
+
 Main.prototype.init = function() {
 
   this.diffNext = 74; // j key
@@ -55,16 +56,23 @@ Main.prototype.generateFileHierarchy = function() {
   this.currentPageUrl = this.getWindowLocationHref();
   this.currentFileId = null;
   this.currentCommentId = null;
-  this.cnt = 0;
 
   this.files = this.getFiles();
   this.toolBarHeight = $('.pr-toolbar').height();
 
-  var hierarchy = $('<p id="jk-hierarchy"></p>');
-  var structure = this.getHierarchyStructure();
-  var compressedStructure = main.compressHierarchy(structure);
+  var fileParser = new FilePathParserService();
 
-  this.generateFileHierarchyHtml(hierarchy, compressedStructure);
+  var files = [];
+  $.each(this.getFiles(), function (index, item) {
+    files[index] = $(item).find('.user-select-contain').attr('title');
+  });
+  
+  var structure = fileParser.getHierarchyStructure(files);
+  var compressedStructure = fileParser.compressHierarchy(structure);
+
+  var hierarchy = $('<p id="jk-hierarchy"></p>');
+
+  fileParser.generateAndApplyHtml(hierarchy, compressedStructure);
 
   $("body").prepend(hierarchy);
 
@@ -119,39 +127,6 @@ Main.prototype.appendCommentCounts = function() {
   });
 };
 
-Main.prototype.generateFileHierarchyHtml = function(hierarchy, structure) {
-
-  var list = $(document.createElement('ul'));
-
-  var that = this;
-  
-  $.each(structure, function(index, file) {
-
-    var label = (typeof file == 'string') ? file : index;
-    
-    var item = $('<li>' + label + '</li>');
-      
-    if (typeof structure[index] === 'object') {
-      item.addClass('folder');
-    }
-    else if (typeof structure[index] === 'string') {
-      item = $('<li><span class="file-name">' + label + '</span></li>');
-      item.addClass('jk-file');
-      item.attr("data-file-id", "diff-" + that.cnt);
-      that.cnt = that.cnt + 1;
-    }
-
-    
-    list.append(item);
-    hierarchy.append(list);
-    
-    if (typeof structure[index] === 'object') {
-      that.generateFileHierarchyHtml(list, structure[index]);
-    }
-
-  });  
-}
-
 Main.prototype.doKeyPress = function(e) {
 
   // Do not react on key press if user is typing text.
@@ -189,83 +164,6 @@ Main.prototype.doKeyPress = function(e) {
     
   }
   
-};
-
-Main.prototype.getHierarchyStructure = function() {
-  var result = {};
-  var files = this.files.find('.user-select-contain');
-  var addProp = this.addProp.bind(this);
-  $.each(files, function(index, file) {
-    var parts = $(file).attr('title').split('/');
-
-    addProp(result, parts);
-  });
-
-  return result;
-};
-
-Main.prototype.addProp = function(res, arr) {
-
-  if (arr.length == 1) {
-    var fname = arr.splice(0,1);
-    res[fname[0]] = fname[0];
-    return;
-  }
-
-  if (arr.length > 1) {
-    var prop = arr.splice(0,1);
-
-    if (!res.hasOwnProperty(prop)) {
-      res[prop] = {};  
-    }
-
-    this.addProp(res[prop], arr);
-  }
-
-};
-
-Main.prototype.compressHierarchy = function(hierarchy) {
-  var newObj = {};
-  var path = "";
-
-  traverse(hierarchy, newObj, path);
-
-  return newObj;
-
-  function traverse(obj, newObj, path) {
-    for(var key in obj) {
-
-      if (!path || typeof obj[key] != 'string') {
-        path = path + String(key) + '/';
-      }
-
-      if (typeof obj[key] == 'string') {
-        
-        if (Object.keys(obj).length == 1) {
-          newObj[path] = {};
-          newObj[path][String(key) + '/'] = obj[key];
-        }
-        else {
-          newObj[path] = obj[key];
-        }
-        
-        path = "";
-        continue;
-      }
-
-      if (typeof obj[key] == 'object' && Object.keys(obj[key]).length > 1) {
-        newObj[path] = {};
-        traverse(obj[key], newObj[path], "");
-        path = "";
-        continue;
-      }
-      
-      traverse(obj[key], newObj, path);
-      
-      path = "";
-      
-    }
-  }
 };
 
 Main.prototype.getCurrentEl = function() {
@@ -379,10 +277,6 @@ Main.prototype.isSameUrl = function() {
 
 Main.prototype.getWindowLocationHref = function() {
   return window.location.href.split("#")[0];
-};
-
-Main.prototype.isSidebarHiddenOnCurrentPage = function() {
-  return $.inArray(this.currentPageUrl, this.hiddenSidebarUrls) != -1;
 };
 
 Main.prototype.isSidebarHaveContents = function() {

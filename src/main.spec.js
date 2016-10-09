@@ -137,6 +137,11 @@ describe("The main script", function () {
     
   });
 
+  it('test', function () {
+    // var t = new TestClass();
+    // t.init();
+  });
+
 });
 
 describe('The main script when no diffs found on page', function () {
