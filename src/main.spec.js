@@ -133,7 +133,9 @@ describe("The main script", function () {
 
   it('should correctly identify a total number of comments', function () {
 
-    expect(main.getComments().length).toBe(1);
+    var appInteractionService = new AppInteractionService(null);
+
+    expect(appInteractionService.getComments().length).toBe(1);
     
   });
 
